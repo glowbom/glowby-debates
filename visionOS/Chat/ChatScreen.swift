@@ -22,6 +22,9 @@ struct ChatScreen: View {
     @State private var apiKey: String = ""
     @State private var obscureApiKey = true
     
+    @State private var apiKeyGemini: String = ""
+    @State private var obscureApiKeyGemini = true
+    
     private func refresh() {
         if voice, let latestMessage = messages.first, latestMessage.userId == "007" {
             textToSpeech.stopSpeaking()
@@ -35,6 +38,10 @@ struct ChatScreen: View {
     
     func toggleApiKeyVisibility() {
         obscureApiKey.toggle()
+    }
+    
+    func toggleApiKeyVisibilityGemini() {
+        obscureApiKeyGemini.toggle()
     }
     
     
@@ -112,7 +119,49 @@ struct ChatScreen: View {
                             }
                             
                             
-                            Text("API Key is stored locally and not shared.")
+                            // Gemini
+                            
+                            Text("Enter Gemini API Key")
+                                .font(.headline)
+                                .padding()
+                            
+                            Text("Get your API key →")
+                                .foregroundColor(.white)
+                                .underline()
+                                .onTapGesture {
+                                    // Open URL using UIApplication.shared.open
+                                    guard let url = URL(string: "https://aistudio.google.com/app/apikey") else { return }
+                                    UIApplication.shared.open(url)
+                                }
+                            
+                            if obscureApiKeyGemini {
+                                SecureField("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", text: $apiKeyGemini)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding()
+                                    .overlay(
+                                        Button(action: toggleApiKeyVisibilityGemini) {
+                                            Image(systemName: "eye")
+                                                .foregroundColor(.gray)
+                                        }
+                                            .padding(.trailing, 8),
+                                        alignment: .trailing
+                                    )
+                            } else {
+                                TextField("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", text: $apiKeyGemini)
+                                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                                    .padding()
+                                    .overlay(
+                                        Button(action: toggleApiKeyVisibilityGemini) {
+                                            Image(systemName: "eye.slash")
+                                                .foregroundColor(.gray)
+                                        }
+                                            .padding(.trailing, 8),
+                                        alignment: .trailing
+                                    )
+                            }
+                            
+                            
+                            Text("API Keys are stored locally and not shared.")
                                 .font(.caption)
                                 .padding()
                             
@@ -141,6 +190,37 @@ struct ChatScreen: View {
                                             kSecClass as String: kSecClassGenericPassword,
                                             kSecAttrAccount as String: "GlowbyOpenAIKey",
                                             kSecValueData as String: apiKey.data(using: .utf8)!
+                                        ]
+                                        SecItemAdd(keychainItemQuery as CFDictionary, nil)
+                                    } else if status != errSecSuccess {
+                                        print("Error updating the API key in Keychain: \(status)")
+                                    }
+                                }
+                                
+                                if apiKeyGemini.isEmpty {
+                                    // Delete the API key from the Keychain
+                                    let query: [String: Any] = [
+                                        kSecClass as String: kSecClassGenericPassword,
+                                        kSecAttrAccount as String: "GlowbyGeminiKey"
+                                    ]
+                                    SecItemDelete(query as CFDictionary)
+                                } else {
+                                    let query: [String: Any] = [
+                                        kSecClass as String: kSecClassGenericPassword,
+                                        kSecAttrAccount as String: "GlowbyGeminiKey"
+                                    ]
+                                    
+                                    let attributesToUpdate: [String: Any] = [
+                                        kSecValueData as String: apiKeyGemini.data(using: .utf8)!
+                                    ]
+                                    
+                                    let status = SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
+                                    
+                                    if status == errSecItemNotFound { // If the item does not exist, add it
+                                        let keychainItemQuery: [String: Any] = [
+                                            kSecClass as String: kSecClassGenericPassword,
+                                            kSecAttrAccount as String: "GlowbyGeminiKey",
+                                            kSecValueData as String: apiKeyGemini.data(using: .utf8)!
                                         ]
                                         SecItemAdd(keychainItemQuery as CFDictionary, nil)
                                     } else if status != errSecSuccess {
@@ -202,6 +282,21 @@ struct ChatScreen: View {
                         self.apiKey = apiKeyString
                     }
                 }
+            
+            let queryGemini: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: "GlowbyGeminiKey",
+                kSecReturnData as String: kCFBooleanTrue!,
+                kSecMatchLimit as String: kSecMatchLimitOne
+            ]
+
+            var itemGemini: CFTypeRef?
+            if SecItemCopyMatching(queryGemini as CFDictionary, &itemGemini) == noErr {
+                if let itemGemini = itemGemini as? Data,
+                   let apiKeyString = String(data: itemGemini, encoding: .utf8) {
+                    self.apiKeyGemini = apiKeyString
+                }
+            }
         }
         .background(Color(UIColor.systemBackground))
         .edgesIgnoringSafeArea(.bottom)

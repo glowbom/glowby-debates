@@ -10,6 +10,8 @@ import GoogleGenerativeAI
 import Combine
 
 struct NewMessage: View {
+    @State private var callOpenAI = true
+    
     @State private var enteredMessage: String = ""
     @State private var isRecording: Bool = false
     @State private var ai: AI
@@ -36,6 +38,39 @@ struct NewMessage: View {
         self.networkManager = NetworkManager(apiProvider: MultiOnAPI())
     }
     
+    func tryLoadKeys() {
+        // Load the API key from the Keychain
+            let query: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrAccount as String: "GlowbyOpenAIKey",
+                kSecReturnData as String: kCFBooleanTrue!,
+                kSecMatchLimit as String: kSecMatchLimitOne
+            ]
+
+            var item: CFTypeRef?
+            if SecItemCopyMatching(query as CFDictionary, &item) == noErr {
+                if let item = item as? Data,
+                   let apiKeyString = String(data: item, encoding: .utf8) {
+                    self.apiKey = apiKeyString
+                }
+            }
+        
+        let queryGemini: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: "GlowbyGeminiKey",
+            kSecReturnData as String: kCFBooleanTrue!,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var itemGemini: CFTypeRef?
+        if SecItemCopyMatching(queryGemini as CFDictionary, &itemGemini) == noErr {
+            if let itemGemini = itemGemini as? Data,
+               let apiKeyString = String(data: itemGemini, encoding: .utf8) {
+                self.apiKeyGemini = apiKeyString
+            }
+        }
+    }
+    
     func convertMessagesToChats(messages: [Message]) -> [[String: String]] {
         guard messages.count > 1 else { return [] }
         
@@ -55,6 +90,11 @@ struct NewMessage: View {
     }
     
     func callGemini(prompt: String) async {
+        
+        if apiKeyGemini == "" {
+            tryLoadKeys()
+        }
+        
         // Call Gemini
         // Access your API key from your on-demand resource .plist file
         // (see "Set up your API key" above)
@@ -100,6 +140,47 @@ struct NewMessage: View {
             self.onMessageSent()
         }
     }
+    
+    func callOpenAI(prompt: String) {
+        if apiKey == "" {
+            tryLoadKeys()
+        }
+        
+        loading = true
+         let previousMessages = convertMessagesToChats(messages: messages)
+         openAIAPI.sendRequest(apiKey: apiKey, message: prompt, previousMessages: previousMessages) { result in
+                             DispatchQueue.main.async {
+                                 loading = false
+                                 switch result {
+                                 case .success(let openAIResponse):
+                                     if let finalResponse = openAIResponse.choices.first?.message.content {
+                                         let aiResponse = Message(
+                                             text: finalResponse,
+                                             createdAt: Timestamp(date: Date()),
+                                             userId: AI.defaultUserId,
+                                             username: "Glowby (Powered by GPT-4o)",
+                                             link: nil
+                                         )
+                                         self.messages.insert(aiResponse, at: 0)
+                                         self.enteredMessage = ""
+                                         self.onMessageSent()
+                                     }
+                                 case .failure:
+                                     let aiResponse = Message(
+                                         text: "Something went wrong. Try again later...",
+                                         createdAt: Timestamp(date: Date()),
+                                         userId: AI.defaultUserId,
+                                         username: "Glowby",
+                                         link: nil
+                                     )
+                                     self.messages.insert(aiResponse, at: 0)
+                                     self.enteredMessage = ""
+                                     self.onMessageSent()
+                                 }
+                                 self.loading = false // Hide loading spinner
+                             }
+                         }
+    }
 
     func sendMessage() {
         if loading {
@@ -125,14 +206,23 @@ struct NewMessage: View {
                 self.enteredMessage = ""
                 self.onMessageSent()
             } else {
-                loading = true
-                // Wrap the call to callGemini in a Task and handle completion
-                                Task {
-                                    await callGemini(prompt: message)
-                                    DispatchQueue.main.async {
-                                        self.loading = false // Hide loading spinner after task completion
+                if callOpenAI {
+                    callOpenAI(prompt: message)
+                    callOpenAI = false
+                } else {
+                    loading = true
+                    // Wrap the call to callGemini in a Task and handle completion
+                                    Task {
+                                        await callGemini(prompt: message)
+                                        DispatchQueue.main.async {
+                                            self.loading = false // Hide loading spinner after task completion
+                                        }
                                     }
-                                }
+                    
+                    callOpenAI = true
+                }
+                
+                
                 
                 // Call OpenAI Here
                /* loading = true
@@ -252,21 +342,7 @@ struct NewMessage: View {
                 }.disabled(enteredMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }.onAppear() {
-            // Load the API key from the Keychain
-                let query: [String: Any] = [
-                    kSecClass as String: kSecClassGenericPassword,
-                    kSecAttrAccount as String: "GlowbyOpenAIKey",
-                    kSecReturnData as String: kCFBooleanTrue!,
-                    kSecMatchLimit as String: kSecMatchLimitOne
-                ]
-
-                var item: CFTypeRef?
-                if SecItemCopyMatching(query as CFDictionary, &item) == noErr {
-                    if let item = item as? Data,
-                       let apiKeyString = String(data: item, encoding: .utf8) {
-                        self.apiKey = apiKeyString
-                    }
-                }
+            tryLoadKeys()
         }
     }
 }
