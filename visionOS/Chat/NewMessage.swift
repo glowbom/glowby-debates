@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import GoogleGenerativeAI
 import Combine
 
 struct NewMessage: View {
@@ -21,6 +22,7 @@ struct NewMessage: View {
     @State private var finalResponse: String = ""
     @State private var loading: Bool = false
     @State private var apiKey: String = ""
+    @State private var apiKeyGemini: String = ""
     private let openAIAPI = OpenAIAPI()
     
     private let networkManager: NetworkManager
@@ -40,6 +42,43 @@ struct NewMessage: View {
         return messages.dropFirst().map { message in
             let role: String = message.userId == "Me" ? "user" : "assistant"
             return ["role": role, "content": message.text]
+        }
+    }
+    
+    func callGemini(prompt: String) async {
+        // Call Gemini
+        // Access your API key from your on-demand resource .plist file
+        // (see "Set up your API key" above)
+        let model = GenerativeModel(name: "gemini-1.5-flash-latest", apiKey: apiKeyGemini)
+        
+        do {
+            let r = try await model.generateContent(prompt)
+            if let text = r.text {
+                print(text)
+                let aiResponse = Message(
+                    text: text,
+                    createdAt: Timestamp(date: Date()),
+                    userId: AI.defaultUserId,
+                    username: "Glowby (Powered by Gemini 1.5 Flash)",
+                    link: nil
+                )
+                self.messages.insert(aiResponse, at: 0)
+                self.enteredMessage = ""
+                self.onMessageSent()
+            }
+        } catch {
+            print("Error generating content: \(error)")
+            // Optionally, you can add code to handle the error here
+            let errorResponse = Message(
+                text: "Something went wrong. Please try again later.",
+                createdAt: Timestamp(date: Date()),
+                userId: AI.defaultUserId,
+                username: "Glowby (Powered by Gemini 1.5 Flash)",
+                link: nil
+            )
+            self.messages.insert(errorResponse, at: 0)
+            self.enteredMessage = ""
+            self.onMessageSent()
         }
     }
 
@@ -63,8 +102,17 @@ struct NewMessage: View {
                 self.enteredMessage = ""
                 self.onMessageSent()
             } else {
-                // Call OpenAI Here
                 loading = true
+                // Wrap the call to callGemini in a Task and handle completion
+                                Task {
+                                    await callGemini(prompt: message)
+                                    DispatchQueue.main.async {
+                                        self.loading = false // Hide loading spinner after task completion
+                                    }
+                                }
+                
+                // Call OpenAI Here
+               /* loading = true
                 let previousMessages = convertMessagesToChats(messages: messages)
                 openAIAPI.sendRequest(apiKey: apiKey, message: message, previousMessages: previousMessages) { result in
                                     DispatchQueue.main.async {
@@ -97,7 +145,7 @@ struct NewMessage: View {
                                         }
                                         self.loading = false // Hide loading spinner
                                     }
-                                }
+                                }*/
                 // call MultiOn Here
                 /*
                  networkManager.sendMessage(message: message, sessionId: lastSessionId.isEmpty ? "" : lastSessionId) { result in

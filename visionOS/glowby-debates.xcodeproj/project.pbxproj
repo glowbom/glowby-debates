@@ -11,6 +11,7 @@
 		89245D362BF5CE370045A467 /* MultiOnApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89245D352BF5CE370045A467 /* MultiOnApi.swift */; };
 		89245D382BF5CEE40045A467 /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89245D372BF5CEE40045A467 /* NetworkManager.swift */; };
 		8994A96D2BF986950036E8D9 /* OpenAiApi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8994A96C2BF986950036E8D9 /* OpenAiApi.swift */; };
+		8994A9702BF9BE6C0036E8D9 /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = 8994A96F2BF9BE6C0036E8D9 /* GoogleGenerativeAI */; };
 		89EB3E0F2BCCABB10035233A /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 89EB3E0E2BCCABB10035233A /* RealityKitContent */; };
 		89EB3E112BCCABB10035233A /* ChatApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89EB3E102BCCABB10035233A /* ChatApp.swift */; };
 		89EB3E132BCCABB10035233A /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89EB3E122BCCABB10035233A /* ContentView.swift */; };
@@ -64,6 +65,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				89EB3E0F2BCCABB10035233A /* RealityKitContent in Frameworks */,
+				8994A9702BF9BE6C0036E8D9 /* GoogleGenerativeAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -150,6 +152,7 @@
 			name = Chat;
 			packageProductDependencies = (
 				89EB3E0E2BCCABB10035233A /* RealityKitContent */,
+				8994A96F2BF9BE6C0036E8D9 /* GoogleGenerativeAI */,
 			);
 			productName = Chat;
 			productReference = 89EB3E092BCCABB10035233A /* Chat.app */;
@@ -170,7 +173,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 89EB3E042BCCABB10035233A /* Build configuration list for PBXProject "chat" */;
+			buildConfigurationList = 89EB3E042BCCABB10035233A /* Build configuration list for PBXProject "glowby-debates" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -179,6 +182,9 @@
 				Base,
 			);
 			mainGroup = 89EB3E002BCCABB10035233A;
+			packageReferences = (
+				8994A96E2BF9BE6C0036E8D9 /* XCRemoteSwiftPackageReference "generative-ai-swift" */,
+			);
 			productRefGroup = 89EB3E0A2BCCABB10035233A /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -404,7 +410,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		89EB3E042BCCABB10035233A /* Build configuration list for PBXProject "chat" */ = {
+		89EB3E042BCCABB10035233A /* Build configuration list for PBXProject "glowby-debates" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				89EB3E1E2BCCABB30035233A /* Debug */,
@@ -424,7 +430,23 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		8994A96E2BF9BE6C0036E8D9 /* XCRemoteSwiftPackageReference "generative-ai-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/generative-ai-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.3;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		8994A96F2BF9BE6C0036E8D9 /* GoogleGenerativeAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8994A96E2BF9BE6C0036E8D9 /* XCRemoteSwiftPackageReference "generative-ai-swift" */;
+			productName = GoogleGenerativeAI;
+		};
 		89EB3E0E2BCCABB10035233A /* RealityKitContent */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RealityKitContent;
