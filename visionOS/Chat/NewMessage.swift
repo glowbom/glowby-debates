@@ -27,7 +27,7 @@ struct NewMessage: View {
     @State private var loading: Bool = false
     @State private var apiKey: String = ""
     @State private var apiKeyGemini: String = ""
-    private let maxSteps = 5
+    private let maxSteps = 4
     private let openAIAPI = OpenAIAPI()
     
     private let networkManager: NetworkManager
@@ -114,7 +114,9 @@ struct NewMessage: View {
         let chat = model.startChat(history: history)
         
         do {
+            loading = true
             let r = try await chat.sendMessage(prompt)
+            loading = false
             if let text = r.text {
                 print(text)
                 let aiResponse = Message(
@@ -139,7 +141,7 @@ struct NewMessage: View {
                 } else if debateStep == maxSteps {
                     Task {
                         try await Task.sleep(nanoseconds: 10_000_000_000) // 2 seconds delay
-                        callOpenAI(prompt: "Conclude the debate")
+                        callOpenAI(prompt: "Conclude the debate on the topic of " + debateTopic)
                         debateStep += 1
                     }
                 }
@@ -157,6 +159,7 @@ struct NewMessage: View {
             self.messages.insert(errorResponse, at: 0)
             self.enteredMessage = ""
             self.onMessageSent()
+            debateStep = 0
         }
     }
     
@@ -196,7 +199,7 @@ struct NewMessage: View {
                                          } else if debateStep == maxSteps {
                                              Task {
                                                  try await Task.sleep(nanoseconds: 10_000_000_000) // 2 seconds delay
-                                                 await callGemini(prompt: "Conclude the debate")
+                                                 await callGemini(prompt: "Conclude the debate on the topic of " + debateTopic)
                                                  DispatchQueue.main.async {
                                                      self.loading = false // Hide loading spinner after task completion
                                                      debateStep += 1
@@ -214,6 +217,7 @@ struct NewMessage: View {
                                      self.messages.insert(aiResponse, at: 0)
                                      self.enteredMessage = ""
                                      self.onMessageSent()
+                                     debateStep = 0
                                  }
                                  self.loading = false // Hide loading spinner
                              }

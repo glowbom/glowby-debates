@@ -61,7 +61,7 @@ class OpenAIAPI: ObservableObject {
             
             do {
                 request.httpBody = try JSONSerialization.data(withJSONObject: data)
-                print("Request data: \(data)")
+                //print("Request data: \(data)")
             } catch {
                 print("Error serializing request body: \(error)")
                 completion(.failure(error))
