@@ -58,13 +58,17 @@ struct NewMessage: View {
         // Call Gemini
         // Access your API key from your on-demand resource .plist file
         // (see "Set up your API key" above)
-        let model = GenerativeModel(name: "gemini-1.5-pro-latest", apiKey: apiKeyGemini)
+        let model = GenerativeModel(name: "gemini-1.5-flash-latest", apiKey: apiKeyGemini)
         
         // Convert previous messages to chat history
-            let history = convertMessagesToChatsForGemini(messages: self.messages)
+        var history = convertMessagesToChatsForGemini(messages: self.messages)
+        
+        // Add system message to history
+        let systemMessage = ModelContent(role: "user", parts: "You are Glowby, super helpful, nice, and humorous AI assistant ready to help with anything. I like to joke around. Always be super concise. Max 1 sentence.")
+        history.insert(systemMessage, at: 0)
             
-            // Initialize the chat
-            let chat = model.startChat(history: history)
+        // Initialize the chat
+        let chat = model.startChat(history: history)
         
         do {
             let r = try await chat.sendMessage(prompt)
@@ -98,6 +102,10 @@ struct NewMessage: View {
     }
 
     func sendMessage() {
+        if loading {
+            return
+        }
+        
         messages.insert(
             Message(text: enteredMessage.trimmingCharacters(in: .whitespacesAndNewlines),
                     createdAt: Timestamp(date: Date()),
