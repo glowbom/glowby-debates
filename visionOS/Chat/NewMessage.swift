@@ -45,14 +45,29 @@ struct NewMessage: View {
         }
     }
     
+    func convertMessagesToChatsForGemini(messages: [Message]) -> [ModelContent] {
+        guard messages.count > 1 else { return [] }
+        
+        return messages.dropFirst().map { message in
+            let role: String = message.userId == "Me" ? "user" : "model"
+            return ModelContent(role: role, parts: message.text)
+        }
+    }
+    
     func callGemini(prompt: String) async {
         // Call Gemini
         // Access your API key from your on-demand resource .plist file
         // (see "Set up your API key" above)
-        let model = GenerativeModel(name: "gemini-1.5-flash-latest", apiKey: apiKeyGemini)
+        let model = GenerativeModel(name: "gemini-1.5-pro-latest", apiKey: apiKeyGemini)
+        
+        // Convert previous messages to chat history
+            let history = convertMessagesToChatsForGemini(messages: self.messages)
+            
+            // Initialize the chat
+            let chat = model.startChat(history: history)
         
         do {
-            let r = try await model.generateContent(prompt)
+            let r = try await chat.sendMessage(prompt)
             if let text = r.text {
                 print(text)
                 let aiResponse = Message(
