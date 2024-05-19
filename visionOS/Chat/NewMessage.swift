@@ -11,6 +11,8 @@ import Combine
 
 struct NewMessage: View {
     @State private var callOpenAI = true
+    @State private var debateTopic: String = ""
+    @State private var debateStep = 0
     
     @State private var enteredMessage: String = ""
     @State private var isRecording: Bool = false
@@ -25,6 +27,7 @@ struct NewMessage: View {
     @State private var loading: Bool = false
     @State private var apiKey: String = ""
     @State private var apiKeyGemini: String = ""
+    private let maxSteps = 5
     private let openAIAPI = OpenAIAPI()
     
     private let networkManager: NetworkManager
@@ -104,7 +107,7 @@ struct NewMessage: View {
         var history = convertMessagesToChatsForGemini(messages: self.messages)
         
         // Add system message to history
-        let systemMessage = ModelContent(role: "user", parts: "You are Glowby, super helpful, nice, and humorous AI assistant ready to help with anything. I like to joke around. Always be super concise. Max 1 sentence.")
+        let systemMessage = ModelContent(role: "user", parts: "You are Glowby, you love debating and joking. Always be super concise. Max 1 sentence. You are debating the topic of " + debateTopic + ". You are actively stand for the first and are trying to convince the opponent that it's better. You need to state that you disagree with your opponent and compare the first to the second. You only find common ground only when you asked to conclude the debate.")
         history.insert(systemMessage, at: 0)
             
         // Initialize the chat
@@ -117,13 +120,29 @@ struct NewMessage: View {
                 let aiResponse = Message(
                     text: text,
                     createdAt: Timestamp(date: Date()),
-                    userId: AI.defaultUserId,
+                    userId: "Me",
                     username: "Glowby (Powered by Gemini 1.5 Flash)",
                     link: nil
                 )
                 self.messages.insert(aiResponse, at: 0)
                 self.enteredMessage = ""
                 self.onMessageSent()
+                
+                print(debateStep)
+                
+                if debateStep < maxSteps {
+                    Task {
+                        try await Task.sleep(nanoseconds: 10_000_000_000) // 2 seconds delay
+                        callOpenAI(prompt: text)
+                        debateStep += 1
+                    }
+                } else if debateStep == maxSteps {
+                    Task {
+                        try await Task.sleep(nanoseconds: 10_000_000_000) // 2 seconds delay
+                        callOpenAI(prompt: "Conclude the debate")
+                        debateStep += 1
+                    }
+                }
             }
         } catch {
             print("Error generating content: \(error)")
@@ -131,7 +150,7 @@ struct NewMessage: View {
             let errorResponse = Message(
                 text: "Something went wrong. Please try again later.",
                 createdAt: Timestamp(date: Date()),
-                userId: AI.defaultUserId,
+                userId: "Me",
                 username: "Glowby (Powered by Gemini 1.5 Flash)",
                 link: nil
             )
@@ -148,7 +167,7 @@ struct NewMessage: View {
         
         loading = true
          let previousMessages = convertMessagesToChats(messages: messages)
-         openAIAPI.sendRequest(apiKey: apiKey, message: prompt, previousMessages: previousMessages) { result in
+         openAIAPI.sendRequest(apiKey: apiKey, debateTopic: debateTopic, message: prompt, previousMessages: previousMessages) { result in
                              DispatchQueue.main.async {
                                  loading = false
                                  switch result {
@@ -164,6 +183,25 @@ struct NewMessage: View {
                                          self.messages.insert(aiResponse, at: 0)
                                          self.enteredMessage = ""
                                          self.onMessageSent()
+                                         
+                                         if debateStep < maxSteps {
+                                             Task {
+                                                 try await Task.sleep(nanoseconds: 10_000_000_000)
+                                                 await callGemini(prompt: finalResponse)
+                                                 DispatchQueue.main.async {
+                                                     self.loading = false // Hide loading spinner after task completion
+                                                     debateStep += 1
+                                                 }
+                                             }
+                                         } else if debateStep == maxSteps {
+                                             Task {
+                                                 try await Task.sleep(nanoseconds: 10_000_000_000) // 2 seconds delay
+                                                 await callGemini(prompt: "Conclude the debate")
+                                                 DispatchQueue.main.async {
+                                                     self.loading = false // Hide loading spinner after task completion
+                                                     debateStep += 1
+                                                 }                                             }
+                                         }
                                      }
                                  case .failure:
                                      let aiResponse = Message(
@@ -206,7 +244,14 @@ struct NewMessage: View {
                 self.enteredMessage = ""
                 self.onMessageSent()
             } else {
-                if callOpenAI {
+                debateTopic = message
+                debateStep = 0
+                Task {
+                    try await Task.sleep(nanoseconds: 5_000_000_000)
+                    callOpenAI(prompt: message)
+                }
+                
+               /* if callOpenAI {
                     callOpenAI(prompt: message)
                     callOpenAI = false
                 } else {
@@ -220,8 +265,7 @@ struct NewMessage: View {
                                     }
                     
                     callOpenAI = true
-                }
-                
+                }*/
                 
                 
                 // Call OpenAI Here

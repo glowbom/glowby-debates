@@ -26,9 +26,9 @@ struct ChatScreen: View {
     @State private var obscureApiKeyGemini = true
     
     private func refresh() {
-        if voice, let latestMessage = messages.first, latestMessage.userId == "007" {
-            textToSpeech.stopSpeaking()
-            textToSpeech.speakText(latestMessage.text)
+        if voice, let latestMessage = messages.first {
+            //textToSpeech.stopSpeaking()
+            textToSpeech.speakText(latestMessage.text, me:  latestMessage.userId == "007")
         }
     }
     

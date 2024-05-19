@@ -28,7 +28,7 @@ class OpenAIAPI: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var totalTokensUsed = 0
     
-    func sendRequest(apiKey: String, message: String, previousMessages: [[String: String]] = [], maxTries: Int = 1, customSystemPrompt: String? = nil, completion: @escaping (Result<OpenAIResponse, Error>) -> Void) {
+    func sendRequest(apiKey: String, debateTopic: String, message: String, previousMessages: [[String: String]] = [], maxTries: Int = 1, customSystemPrompt: String? = nil, completion: @escaping (Result<OpenAIResponse, Error>) -> Void) {
         var finalResponse = ""
         var inputMessage = message
         var tries = 0
@@ -44,7 +44,7 @@ class OpenAIAPI: ObservableObject {
             
             let adjustedMaxTokens = getAdjustedMaxTokens(inputMessage)
             let model = "gpt-4o" // Replace with your model name
-            let systemPrompt = customSystemPrompt ?? "You are Glowby, super helpful, nice, and humorous AI assistant ready to help with anything. I like to joke around. Always be super concise. Max 1 sentence."
+            let systemPrompt = customSystemPrompt ?? "You are Glowby, you love debating and joking. Always be super concise. Max 1 sentence. You are debating the topic of " + debateTopic + ". You are actively stand for the second and are trying to convince the opponent that it's better. You need to state that you stand with the second one and compare the secound to the first. You only find common ground only when you asked to conclude the debate."
             
             var messages: [[String: String]] = [["role": "system", "content": systemPrompt]]
             messages.append(contentsOf: previousMessages)

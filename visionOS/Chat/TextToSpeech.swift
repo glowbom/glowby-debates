@@ -47,6 +47,13 @@ class TextToSpeech: ObservableObject {
         self.synthesizer.speak(utterance)
     }
     
+    func speakText(_ text: String, me: Bool) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: me ? "en-US" : "en-GB")
+        isSpeaking = true
+        self.synthesizer.speak(utterance)
+    }
+    
     private func languageCode(for text: String) -> String? {
         for (language, code) in languageCodes {
             if text.starts(with: "\(language):") {
